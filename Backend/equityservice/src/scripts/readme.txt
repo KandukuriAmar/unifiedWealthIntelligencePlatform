@@ -1,0 +1,1 @@
+Use this folder for utility scripts such as DB checks and maintenance tasks.
