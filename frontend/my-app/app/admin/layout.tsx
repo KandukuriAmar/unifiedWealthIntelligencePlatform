@@ -1,24 +1,18 @@
-"use client";
-
-import React, { useState } from "react";
-import Navbar from "../components/admin/Navbar";
-import Sidebar from "../components/admin/Sidebar";
+import React from 'react';
+import { AppSidebar } from '@/components/layout/AppSidebar';
+import { Header } from '@/components/layout/Header';
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar onToggleSidebar={() => setOpen(!open)} />
-
-      <div className="flex flex-1">
-        <Sidebar isOpen={open} onClose={() => setOpen(false)} />
-
-        <main className="flex-1 p-6 bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
+      <AppSidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
       </div>
