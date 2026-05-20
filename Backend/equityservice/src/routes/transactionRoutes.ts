@@ -1,15 +1,60 @@
-import { Router } from 'express';
-import * as transactionController from '../controllers/transactionController';
-import authMiddleware from '../middleware/authMiddleware';
-import validateRequestMiddleware from '../middleware/validateRequestMiddleware';
-import { transactionValidation } from '../validations/transactionValidation';
+import { Router } from "express";
+
+import * as transactionController
+from "../controllers/transactionController";
+
+import validateRequestMiddleware
+from "../middleware/validateRequestMiddleware";
+
+import {
+  transactionValidation
+} from "../validations/transactionValidation";
+
+import {
+  authMiddleware
+} from "../middleware/authMiddleware";
 
 const router = Router();
 
-router.use(authMiddleware);
 
-router.get('/', transactionController.getTransactions);
-router.post('/buy', transactionValidation, validateRequestMiddleware, transactionController.buyStock);
-router.post('/sell', transactionValidation, validateRequestMiddleware, transactionController.sellStock);
+// GET ALL TRANSACTIONS
+
+router.get(
+  "/",
+
+  authMiddleware,
+
+  transactionController.getTransactions
+);
+
+
+// BUY STOCK
+
+router.post(
+  "/buy",
+
+  authMiddleware,
+
+  transactionValidation,
+
+  validateRequestMiddleware,
+
+  transactionController.buyStock
+);
+
+
+// SELL STOCK
+
+router.post(
+  "/sell",
+
+  authMiddleware,
+
+  transactionValidation,
+
+  validateRequestMiddleware,
+
+  transactionController.sellStock
+);
 
 export default router;

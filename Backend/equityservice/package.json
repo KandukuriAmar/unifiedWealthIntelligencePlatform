@@ -4,7 +4,7 @@
   "description": "Production-ready Equity Service backend with Express, Sequelize, Supabase PostgreSQL, and JWT auth",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js"
   },
@@ -19,11 +19,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.8",
+    "@supabase/supabase-js": "^2.106.0",
+    "axios": "^1.16.1",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^4.21.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
@@ -34,11 +35,13 @@
   "devDependencies": {
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.1",
+    "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^22.15.21",
+    "@types/node": "^22.19.19",
+    "ts-node-dev": "^2.0.0",
     "tsx": "^4.20.5",
-    "typescript": "^5.8.3"
-  }
+    "typescript": "^5.9.3"
+  },
+  "type": "commonjs"
 }

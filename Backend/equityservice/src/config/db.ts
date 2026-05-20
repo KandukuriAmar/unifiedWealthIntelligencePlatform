@@ -1,18 +1,65 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  createClient,
+  SupabaseClient
+} from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+import dotenv from "dotenv";
 
-let supabase: SupabaseClient | null = null;
+dotenv.config();
 
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-}
 
-const connectDatabase = async (): Promise<void> => {
-  if (!supabase) {
-    throw new Error('Database configuration missing. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env');
+const supabaseUrl =
+  process.env.SUPABASE_URL!;
+
+const supabaseKey =
+  process.env.SUPABASE_KEY!;
+
+
+export const supabase:
+SupabaseClient = createClient(
+
+  supabaseUrl,
+
+  supabaseKey
+);
+
+
+export const connectDatabase =
+async (): Promise<void> => {
+
+  try {
+
+    const {
+      error
+    } = await supabase
+
+      .from("equity_holdings")
+
+      .select("*")
+
+      .limit(1);
+
+    if (error) {
+
+      console.log(
+        " Supabase Connection Error"
+      );
+
+      console.log(error.message);
+
+      return;
+    }
+
+    console.log(
+      " Supabase Connected"
+    );
+
+  } catch (error) {
+
+    console.log(
+      " Database Connection Failed"
+    );
+
+    console.log(error);
   }
 };
-
-export { supabase, connectDatabase };

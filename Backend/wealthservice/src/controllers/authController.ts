@@ -17,7 +17,7 @@ export const login = async (
     const data =
       await loginUser(
         email,
-        password
+        password  
       );
 
     res.status(200).json({

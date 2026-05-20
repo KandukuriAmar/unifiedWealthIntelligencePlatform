@@ -11,7 +11,7 @@ const ensureSupabase = (): void => {
 export const getAllMarketPrices = async (): Promise<EquityMarketPriceRow[]> => {
   ensureSupabase();
 
-  const { data, error } = await supabase
+  const { data, error } = await supabase!
     .from('equity_market_prices')
     .select('*')
     .order('stock_symbol', { ascending: true });
@@ -26,7 +26,7 @@ export const getAllMarketPrices = async (): Promise<EquityMarketPriceRow[]> => {
 export const getMarketPriceBySymbol = async (symbol: string): Promise<EquityMarketPriceRow> => {
   ensureSupabase();
 
-  const { data: marketPrice, error } = await supabase
+  const { data: marketPrice, error } = await supabase!
     .from('equity_market_prices')
     .select('*')
     .eq('stock_symbol', symbol.toUpperCase())

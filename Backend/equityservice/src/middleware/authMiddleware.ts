@@ -1,39 +1,59 @@
-import { RequestHandler } from 'express';
-import { verifyToken } from '../utils/tokenUtils';
+import {
+  Request,
+  Response,
+  NextFunction
+} from "express";
 
-const authMiddleware: RequestHandler = (req, res, next) => {
+import jwt from "jsonwebtoken";
+
+
+export const authMiddleware =
+(
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+
   try {
-    // Try Authorization header first, then fall back to cookie
-    let token: string | undefined;
 
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.cookies?.access_token) {
-      token = req.cookies.access_token;
-    }
+    const token =
+      req.headers.authorization
+      ?.split(" ")[1];
 
     if (!token) {
+
       return res.status(401).json({
+
         success: false,
-        message: 'Authorization token is missing'
+
+        message: "No token provided"
       });
     }
 
-    const decoded = verifyToken(token);
 
-    req.user = {
-      investor_id: decoded.investor_id,
-      email: decoded.email
-    };
+    const decoded =
+      jwt.verify(
+
+        token,
+
+        process.env.JWT_SECRET!
+      );
+
+
+    // SAVE USER INTO REQUEST
+
+    req.user = decoded;
+
 
     next();
+
   } catch (error) {
+
     return res.status(401).json({
+
       success: false,
-      message: 'Invalid or expired token'
+
+      message: "Invalid token"
     });
   }
 };
-
-export default authMiddleware;

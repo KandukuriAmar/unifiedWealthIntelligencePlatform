@@ -14,7 +14,9 @@ async (
     const token = jwt.sign(
       {
         email,
-        role: "ADMIN"
+        role: "ADMIN",
+
+        investor_id: "INV1001"
       },
       "secretkey",
       {
@@ -27,5 +29,7 @@ async (
     };
   }
 
-  throw new Error("Invalid Credentials");
+  throw new Error(
+    "Invalid Credentials"
+  );
 };
