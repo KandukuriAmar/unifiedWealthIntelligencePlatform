@@ -12,10 +12,10 @@ from "../config/redis";
 
 
 export const getPortfolioSummary =
-async () => {
+async (email?: string, authHeader?: string) => {
 
   const cacheKey =
-    "portfolio-summary";
+    `portfolio-summary-${email || 'default'}`;
 
   const cachedData =
     await redisClient.get(cacheKey);
@@ -39,11 +39,31 @@ async () => {
     totalValue: 0
   };
 
+  let customerRef = "CUST-1001";
+  if (email) {
+    try {
+      const customerResponse =
+        await axios.get(
+          `${process.env.MF_SERVICE_URL}/api/mf/customer/by-email/${email}`,
+          {
+            headers: {
+              "x-api-key": "myapikey"
+            }
+          }
+        );
+      if (customerResponse.data && customerResponse.data.data) {
+        customerRef = customerResponse.data.data.customer_ref;
+      }
+    } catch (error) {
+      console.log("Failed to resolve customer by email:", email);
+    }
+  }
+
   try {
 
     const mfResponse =
       await axios.get(
-        `${process.env.MF_SERVICE_URL}/api/mf/portfolio/CUST-1001`,
+        `${process.env.MF_SERVICE_URL}/api/mf/portfolio/${customerRef}`,
         {
           headers: {
             "x-api-key": "myapikey"
@@ -69,14 +89,26 @@ async () => {
   }
 
   try {
+    const headers: any = {};
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
 
     const equityResponse =
       await axios.get(
-        `${process.env.EQUITY_SERVICE_URL}/api/equity/portfolio`
+        `${process.env.EQUITY_SERVICE_URL}/holdings`,
+        { headers }
       );
 
-    equityData =
-      equityResponse.data;
+    const holdings = equityResponse.data.data || [];
+    const totalValue = holdings.reduce((sum: number, item: any) => {
+      return sum + (Number(item.quantity) * Number(item.current_market_price || item.avg_buy_price || 0));
+    }, 0);
+
+    equityData = {
+      holdings,
+      totalValue
+    };
 
   } catch (error) {
 
@@ -136,17 +168,37 @@ async () => {
 };
 
 export const getAllTransactions =
-async () => {
+async (email?: string, authHeader?: string) => {
 
   let mfTransactions = [];
 
   let equityTransactions = [];
 
+  let customerRef = "CUST-1001";
+  if (email) {
+    try {
+      const customerResponse =
+        await axios.get(
+          `${process.env.MF_SERVICE_URL}/api/mf/customer/by-email/${email}`,
+          {
+            headers: {
+              "x-api-key": "myapikey"
+            }
+          }
+        );
+      if (customerResponse.data && customerResponse.data.data) {
+        customerRef = customerResponse.data.data.customer_ref;
+      }
+    } catch (error) {
+      console.log("Failed to resolve customer by email:", email);
+    }
+  }
+
   try {
 
     const mfResponse =
       await axios.get(
-        `${process.env.MF_SERVICE_URL}/api/mf/transactions/CUST-1001`,
+        `${process.env.MF_SERVICE_URL}/api/mf/transactions/${customerRef}`,
         {
           headers: {
             "x-api-key": "myapikey"
@@ -165,14 +217,19 @@ async () => {
   }
 
   try {
+    const headers: any = {};
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
 
     const equityResponse =
       await axios.get(
-        `${process.env.EQUITY_SERVICE_URL}/api/equity/transactions`
+        `${process.env.EQUITY_SERVICE_URL}/transactions`,
+        { headers }
       );
 
     equityTransactions =
-      equityResponse.data.transactions;
+      equityResponse.data.data || [];
 
   } catch (error) {
 

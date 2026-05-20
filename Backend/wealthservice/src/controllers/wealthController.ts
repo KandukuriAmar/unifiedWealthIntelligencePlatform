@@ -16,9 +16,11 @@ async (
 ) => {
 
   try {
+    const user = (req as any).user;
+    const authHeader = req.headers.authorization;
 
     const data =
-      await getPortfolioSummary();
+      await getPortfolioSummary(user?.email, authHeader);
 
     res.status(200).json({
       success: true,
@@ -66,9 +68,11 @@ async (
 ) => {
 
   try {
+    const user = (req as any).user;
+    const authHeader = req.headers.authorization;
 
     const data =
-      await getAllTransactions();
+      await getAllTransactions(user?.email, authHeader);
 
     res.status(200).json({
       success: true,

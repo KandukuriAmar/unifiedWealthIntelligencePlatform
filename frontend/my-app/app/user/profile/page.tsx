@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Phone, MapPin, Building, Calendar, Shield, Save, Loader2, Camera } from 'lucide-react';
+import { updateProfile } from '@/lib/auth-actions';
+import { Mail, Shield, Save, Loader2, Camera, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,7 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -22,14 +23,39 @@ import { toast } from 'sonner';
 export default function UserProfile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [dematAccount, setDematAccount] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '');
+      setEmail(user.email || '');
+      setPanNumber((user as any).pan_number || '');
+      setDematAccount((user as any).demat_account || '');
+    }
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName || !email) {
+      toast.error('Name and Email are required');
+      return;
+    }
     setLoading(true);
-    // Mock save operation
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await updateProfile({
+      full_name: fullName,
+      email,
+      pan_number: panNumber,
+      demat_account: dematAccount,
+    });
     setLoading(false);
-    toast.success('Profile updated successfully');
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
   };
 
   return (
@@ -39,7 +65,7 @@ export default function UserProfile() {
           My Profile
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Manage your personal information and preferences.
+          Manage your personal information and financial account preferences.
         </p>
       </div>
 
@@ -52,17 +78,14 @@ export default function UserProfile() {
                 <div className="relative group">
                   <Avatar className="h-32 w-32 border-4 border-white dark:border-slate-900 shadow-lg">
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-4xl">
-                      {user?.name.substring(0, 2).toUpperCase()}
+                      {fullName ? fullName.substring(0, 2).toUpperCase() : 'US'}
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full shadow-lg hover:bg-slate-800 transition-transform hover:scale-105 active:scale-95">
-                    <Camera className="h-4 w-4" />
-                  </button>
                 </div>
                 
                 <div className="space-y-1">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {user?.name}
+                    {fullName || 'Loading...'}
                   </h2>
                   <p className="text-sm font-medium text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1.5">
                     <Shield className="h-4 w-4" />
@@ -75,7 +98,7 @@ export default function UserProfile() {
                     Active
                   </Badge>
                   <Badge variant="outline" className="text-slate-500 border-slate-200 dark:border-slate-700">
-                    Joined 2024
+                    ID: {user?.id}
                   </Badge>
                 </div>
               </div>
@@ -85,19 +108,7 @@ export default function UserProfile() {
                   <div className="p-2 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                     <Mail className="h-4 w-4" />
                   </div>
-                  {user?.email}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    <Phone className="h-4 w-4" />
-                  </div>
-                  +1 (555) 123-4567
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="p-2 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  New York, NY
+                  {email || 'Loading...'}
                 </div>
               </div>
             </CardContent>
@@ -121,31 +132,48 @@ export default function UserProfile() {
                 <CardHeader>
                   <CardTitle>Personal Information</CardTitle>
                   <CardDescription>
-                    Update your contact details and personal information.
+                    Update your contact details and identity information stored in our database.
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSave}>
                   <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" defaultValue={user?.name.split(' ')[0]} />
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input 
+                          id="fullName" 
+                          value={fullName} 
+                          onChange={(e) => setFullName(e.target.value)} 
+                          placeholder="e.g. Rahul Sharma" 
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" defaultValue={user?.name.split(' ').slice(1).join(' ')} />
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          value={email} 
+                          onChange={(e) => setEmail(e.target.value)} 
+                          placeholder="e.g. rahul@example.com" 
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" defaultValue={user?.email} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" />
+                        <Label htmlFor="panNumber">PAN Number</Label>
+                        <Input 
+                          id="panNumber" 
+                          value={panNumber} 
+                          onChange={(e) => setPanNumber(e.target.value)} 
+                          placeholder="e.g. ABCDE1234F" 
+                        />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="address">Address</Label>
-                        <Input id="address" defaultValue="123 Park Avenue, Suite 400" />
+                        <Label htmlFor="dematAccount">Demat Account Number</Label>
+                        <Input 
+                          id="dematAccount" 
+                          value={dematAccount} 
+                          onChange={(e) => setDematAccount(e.target.value)} 
+                          placeholder="e.g. 1201234512345678" 
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -166,7 +194,7 @@ export default function UserProfile() {
             <TabsContent value="financial" className="mt-6 focus-visible:outline-none focus-visible:ring-0">
               <Card className="border-slate-200 shadow-sm dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Financial Profile</CardTitle>
+                  <CardTitle>Financial Profile & Demat</CardTitle>
                   <CardDescription>
                     Your regulatory and compliance information.
                   </CardDescription>
@@ -174,16 +202,16 @@ export default function UserProfile() {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>Risk Tolerance</Label>
-                      <Input value="Aggressive Growth" readOnly className="bg-slate-50 dark:bg-slate-900 text-slate-500 focus-visible:ring-0 cursor-not-allowed" />
+                      <Label>Investor ID</Label>
+                      <Input value={user?.id || ''} readOnly className="bg-slate-50 dark:bg-slate-900 text-slate-500 focus-visible:ring-0 cursor-not-allowed" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Investment Horizon</Label>
-                      <Input value="10+ Years" readOnly className="bg-slate-50 dark:bg-slate-900 text-slate-500 focus-visible:ring-0 cursor-not-allowed" />
+                      <Label>PAN Status</Label>
+                      <Input value="Verified" readOnly className="bg-slate-50 dark:bg-slate-900 text-slate-500 focus-visible:ring-0 cursor-not-allowed" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Tax ID / SSN</Label>
-                      <Input type="password" value="********1234" readOnly className="bg-slate-50 dark:bg-slate-900 text-slate-500 focus-visible:ring-0 cursor-not-allowed" />
+                      <Label>Demat Status</Label>
+                      <Input value="Connected" readOnly className="bg-slate-50 dark:bg-slate-900 text-slate-500 focus-visible:ring-0 cursor-not-allowed" />
                     </div>
                     <div className="space-y-2">
                       <Label>Account Type</Label>
@@ -191,9 +219,9 @@ export default function UserProfile() {
                     </div>
                   </div>
                   <div className="p-4 mt-6 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400 text-sm flex gap-3">
-                    <Shield className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                    <ShieldCheck className="h-5 w-5 flex-shrink-0 mt-0.5" />
                     <p>
-                      Financial profile updates require advisor verification. Please contact your dedicated wealth advisor to modify these settings.
+                      Verification profile updates require compliance review. Please contact your administrator or advisor to request changes.
                     </p>
                   </div>
                 </CardContent>

@@ -16,6 +16,21 @@ async (customerRef: string) => {
   return data;
 };
 
+export const getAllFunds =
+async () => {
+
+  const { data, error } = await supabase
+    .from("mf_customer_funds")
+    .select(`
+      *,
+      mf_schemes(*)
+    `);
+
+  if (error) throw error;
+
+  return data;
+};
+
 export const getSipsByCustomer =
 async (customerRef: string) => {
 
@@ -26,6 +41,21 @@ async (customerRef: string) => {
       mf_schemes(*)
     `)
     .eq("customer_ref", customerRef);
+
+  if (error) throw error;
+
+  return data;
+};
+
+export const getAllSips =
+async () => {
+
+  const { data, error } = await supabase
+    .from("mf_sips")
+    .select(`
+      *,
+      mf_schemes(*)
+    `);
 
   if (error) throw error;
 
@@ -63,3 +93,17 @@ async () => {
 
   return data;
 };
+
+export const getCustomerByEmail =
+async (email: string) => {
+
+  const { data, error } = await supabase
+    .from("mf_customers")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data;
+};

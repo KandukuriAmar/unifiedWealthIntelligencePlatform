@@ -7,7 +7,6 @@ async function getWealthAllTransactions() {
     const res = await fetchApi('/api/wealth/all-transactions', {
       method: 'GET',
       service: 'wealth',
-      requireAuth: false,
     });
     return res.data || { mutualFundTransactions: [], equityTransactions: [] };
   } catch (error) {

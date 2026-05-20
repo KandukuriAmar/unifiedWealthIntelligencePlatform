@@ -9,6 +9,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', holdingController.getHoldings);
+router.get('/admin', holdingController.getAllAdminHoldings);
 router.get('/:id', holdingIdValidation, validateRequestMiddleware, holdingController.getHoldingById);
 
 export default router;

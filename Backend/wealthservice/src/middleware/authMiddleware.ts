@@ -31,7 +31,7 @@ export const verifyToken =
     const decoded =
       jwt.verify(
         token,
-        "secretkey"
+        process.env.JWT_SECRET || 'supersecretjwtkey_123456789_unifiedwealthplatform'
       );
 
     (req as any).user =

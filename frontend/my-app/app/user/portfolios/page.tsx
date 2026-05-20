@@ -7,7 +7,6 @@ async function getWealthPortfolioSummary() {
     const res = await fetchApi('/api/wealth/portfolio/summary', {
       method: 'GET',
       service: 'wealth',
-      requireAuth: false,
     });
     return res.data || null;
   } catch (error) {

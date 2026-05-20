@@ -1,8 +1,11 @@
 import {
   getFundsByCustomer,
+  getAllFunds,
   getSipsByCustomer,
+  getAllSips,
   getTransactionsByCustomer,
-  getFailedSips
+  getFailedSips,
+  getCustomerByEmail
 } from "../models/mfModel";
 
 export const fetchCompletePortfolio =
@@ -43,10 +46,21 @@ async (customerRef: string) => {
   };
 };
 
+export const fetchAllFunds =
+async () => {
+  return await getAllFunds();
+};
+
 export const fetchSips =
 async (customerRef: string) => {
 
   return await getSipsByCustomer(customerRef);
+};
+
+export const fetchAllSips =
+async () => {
+
+  return await getAllSips();
 };
 
 export const fetchTransactions =
@@ -60,3 +74,9 @@ async () => {
 
   return await getFailedSips();
 };
+
+export const fetchCustomerByEmail =
+async (email: string) => {
+
+  return await getCustomerByEmail(email);
+};

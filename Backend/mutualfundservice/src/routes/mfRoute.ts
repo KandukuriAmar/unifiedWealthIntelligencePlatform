@@ -2,9 +2,12 @@ import express from "express";
 
 import {
   getPortfolio,
+  getAllPortfolioData,
   getSips,
   getTransactions,
-  getFailedSipData
+  getFailedSipData,
+  getAllSipsData,
+  getCustomerByEmail
 } from "../controllers/mfController";
 
 import {
@@ -20,9 +23,21 @@ router.get(
 );
 
 router.get(
+  "/admin-portfolio",
+  verifyApiKey,
+  getAllPortfolioData
+);
+
+router.get(
   "/sips/:customerRef",
   verifyApiKey,
   getSips
+);
+
+router.get(
+  "/admin-sips",
+  verifyApiKey,
+  getAllSipsData
 );
 
 router.get(
@@ -35,6 +50,12 @@ router.get(
   "/failed-sips",
   verifyApiKey,
   getFailedSipData
+);
+
+router.get(
+  "/customer/by-email/:email",
+  verifyApiKey,
+  getCustomerByEmail
 );
 
 export default router;

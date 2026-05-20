@@ -1,0 +1,14 @@
+[
+  {
+    "investor_id": "INV1003",
+    "advisor_id": "ADM1001"
+  },
+  {
+    "investor_id": "INV1005",
+    "advisor_id": "ADM1002"
+  },
+  {
+    "investor_id": "INV2001",
+    "advisor_id": "ADM1001"
+  }
+]

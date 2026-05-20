@@ -2,9 +2,12 @@ import { Request, Response } from "express";
 
 import {
   fetchCompletePortfolio,
+  fetchAllFunds,
   fetchSips,
+  fetchAllSips,
   fetchTransactions,
-  fetchFailedSips
+  fetchFailedSips,
+  fetchCustomerByEmail
 } from "../services/mfService";
 
 export const getPortfolio =
@@ -36,6 +39,32 @@ async (
   }
 };
 
+export const getAllPortfolioData =
+async (
+  req: Request,
+  res: Response
+) => {
+
+  try {
+
+    const funds =
+      await fetchAllFunds();
+
+    res.status(200).json({
+      success: true,
+      data: { funds }
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "All portfolio fetch failed",
+      error
+    });
+  }
+};
+
 export const getSips =
 async (
   req: Request,
@@ -60,6 +89,32 @@ async (
     res.status(500).json({
       success: false,
       message: "Failed to fetch SIPs",
+      error
+    });
+  }
+};
+
+export const getAllSipsData =
+async (
+  req: Request,
+  res: Response
+) => {
+
+  try {
+
+    const sips =
+      await fetchAllSips();
+
+    res.status(200).json({
+      success: true,
+      sips
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch all SIPs",
       error
     });
   }
@@ -119,3 +174,32 @@ async (
     });
   }
 };
+
+export const getCustomerByEmail =
+async (
+  req: Request,
+  res: Response
+) => {
+
+  try {
+
+    const email =
+      req.params.email as string;
+
+    const customer =
+      await fetchCustomerByEmail(email);
+
+    res.status(200).json({
+      success: true,
+      data: customer
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "Customer fetch failed",
+      error
+    });
+  }
+};

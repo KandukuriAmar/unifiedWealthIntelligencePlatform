@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Phone, MapPin, Building, Shield, Save, Loader2, Camera, Briefcase } from 'lucide-react';
+import { updateProfile } from '@/lib/auth-actions';
+import { Mail, Shield, Save, Loader2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,13 +23,36 @@ import { toast } from 'sonner';
 export default function AdminProfile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName || !email) {
+      toast.error('Name and Email are required');
+      return;
+    }
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Since admins only update name and email, we pass empty/existing PAN/Demat
+    const result = await updateProfile({
+      full_name: fullName,
+      email,
+      pan_number: 'SYSTEMPAN',
+      demat_account: 'SYSTEMDMAT',
+    });
     setLoading(false);
-    toast.success('Advisor profile updated successfully');
+    if (result.success) {
+      toast.success('Advisor profile updated successfully');
+    } else {
+      toast.error(result.message);
+    }
   };
 
   return (
@@ -50,17 +74,14 @@ export default function AdminProfile() {
                 <div className="relative group">
                   <Avatar className="h-32 w-32 border-4 border-white dark:border-slate-900 shadow-lg">
                     <AvatarFallback className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white text-4xl">
-                      {user?.name.substring(0, 2).toUpperCase()}
+                      {fullName ? fullName.substring(0, 2).toUpperCase() : 'AD'}
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full shadow-lg hover:bg-slate-800 transition-transform hover:scale-105 active:scale-95">
-                    <Camera className="h-4 w-4" />
-                  </button>
                 </div>
                 
                 <div className="space-y-1">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {user?.name}
+                    {fullName || 'Loading...'}
                   </h2>
                   <p className="text-sm font-medium text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1.5">
                     <Briefcase className="h-4 w-4" />
@@ -73,7 +94,7 @@ export default function AdminProfile() {
                     Active License
                   </Badge>
                   <Badge variant="outline" className="text-slate-500 border-slate-200 dark:border-slate-700">
-                    CRD #: 4839201
+                    ID: {user?.id}
                   </Badge>
                 </div>
               </div>
@@ -83,19 +104,7 @@ export default function AdminProfile() {
                   <div className="p-2 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
                     <Mail className="h-4 w-4" />
                   </div>
-                  {user?.email}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    <Phone className="h-4 w-4" />
-                  </div>
-                  +1 (555) 987-6543
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                    <Building className="h-4 w-4" />
-                  </div>
-                  Global Wealth Partners HQ
+                  {email || 'Loading...'}
                 </div>
               </div>
             </CardContent>
@@ -118,31 +127,30 @@ export default function AdminProfile() {
                 <CardHeader>
                   <CardTitle>Professional Information</CardTitle>
                   <CardDescription>
-                    Update your public advisor directory information.
+                    Update your advisor directory profile.
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSave}>
                   <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" defaultValue={user?.name.split(' ')[0]} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" defaultValue={user?.name.split(' ').slice(1).join(' ')} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Work Email</Label>
-                        <Input id="email" type="email" defaultValue={user?.email} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Direct Line</Label>
-                        <Input id="phone" type="tel" defaultValue="+1 (555) 987-6543" />
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input 
+                          id="fullName" 
+                          value={fullName} 
+                          onChange={(e) => setFullName(e.target.value)} 
+                          placeholder="e.g. Arjun Mehta" 
+                        />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="bio">Professional Bio</Label>
-                        <Input id="bio" defaultValue="Specializing in UHNW portfolio management and estate planning." />
+                        <Label htmlFor="email">Work Email</Label>
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          value={email} 
+                          onChange={(e) => setEmail(e.target.value)} 
+                          placeholder="e.g. arjun@example.com" 
+                        />
                       </div>
                     </div>
                   </CardContent>

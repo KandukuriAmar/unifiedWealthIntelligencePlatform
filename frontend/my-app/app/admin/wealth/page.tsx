@@ -1,93 +1,112 @@
-import React from 'react';
-import { fetchApi } from '@/lib/api-client';
-import { Layers, Wallet, LineChart, Shield, CheckCircle, XCircle } from 'lucide-react';
+'use client';
 
-async function getWealthPortfolioSummary() {
-  try {
-    const res = await fetchApi('/api/wealth/portfolio/summary', {
-      method: 'GET',
-      service: 'wealth',
-      requireAuth: false,
-    });
-    return res.data || null;
-  } catch (error) {
-    console.error('Failed to fetch wealth portfolio summary:', error);
-    // Return dummy data structure for graceful degradation
-    return {
-      mutualFunds: {
-        funds: [
-          {
-            id: 1,
-            customer_ref: 'CUST-1001',
-            scheme_code: 'SBI-BLUECHIP',
-            units: 500,
-            invested_amount: 30000,
-            current_value: 34226.05,
-            investment_date: '2023-06-01',
-            mf_schemes: {
-              amc_name: 'SBI Mutual Fund',
-              nav_date: '2024-12-01',
-              nav_value: 68.4521,
-              scheme_code: 'SBI-BLUECHIP',
-              scheme_name: 'SBI Bluechip Fund',
-              fund_category: 'Large Cap',
-              risk_category: 'Moderate'
-            }
-          },
-          {
-            id: 2,
-            customer_ref: 'CUST-1001',
-            scheme_code: 'HDFC-FLEXI',
-            units: 100,
-            invested_amount: 80000,
-            current_value: 89215,
-            investment_date: '2023-08-15',
-            mf_schemes: {
-              amc_name: 'HDFC Mutual Fund',
-              nav_date: '2024-12-01',
-              nav_value: 892.15,
-              scheme_code: 'HDFC-FLEXI',
-              scheme_name: 'HDFC Flexi Cap Fund',
-              fund_category: 'Flexi Cap',
-              risk_category: 'Moderately High'
-            }
-          }
-        ],
-        sips: [],
-        transactions: [],
-        summary: {
-          totalInvestment: 110000,
-          totalCurrentValue: 123441.05,
-          profit: 13441.05
-        }
-      },
-      equity: {
-        service: 'DOWN',
-        totalValue: 0
-      },
-      totalWealth: 123441.05
-    };
-  }
-}
+import React, { useEffect, useState } from 'react';
+import { Layers, Wallet, LineChart, Shield, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
+import { getAssignments, getAllAdminPortfolioFunds, getAllAdminHoldings } from '@/lib/admin-actions';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
-export default async function AdminWealth() {
-  const summary = await getWealthPortfolioSummary();
+export default function AdminWealth() {
+  const [mutualFunds, setMutualFunds] = useState<any[]>([]);
+  const [equityHoldings, setEquityHoldings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [mfServiceStatus, setMfServiceStatus] = useState<'UP' | 'DOWN'>('UP');
+  const [equityServiceStatus, setEquityServiceStatus] = useState<'UP' | 'DOWN'>('UP');
+  
+  const { user } = useAuth();
 
-  const mutualFundsSummary = summary?.mutualFunds?.summary || { totalInvestment: 0, totalCurrentValue: 0, profit: 0 };
-  const equitySummary = summary?.equity || { service: 'DOWN', totalValue: 0 };
-  const fundsList = summary?.mutualFunds?.funds || [];
+  const loadData = async () => {
+    if (!user) return;
+    setLoading(true);
+    
+    let allFunds = [];
+    let allHoldings = [];
+    
+    try {
+      const assignments = await getAssignments();
+      const myAssignedUserIds = assignments
+        .filter(a => a.advisor_id === user.id)
+        .map(a => a.investor_id);
+
+      // Fetch all MF Funds
+      try {
+        allFunds = await getAllAdminPortfolioFunds();
+        setMfServiceStatus('UP');
+      } catch (err) {
+        console.error('Failed to fetch MF admin portfolio:', err);
+        setMfServiceStatus('DOWN');
+      }
+
+      // Fetch all Equity Holdings
+      try {
+        allHoldings = await getAllAdminHoldings();
+        setEquityServiceStatus('UP');
+      } catch (err) {
+        console.error('Failed to fetch Equity admin holdings:', err);
+        setEquityServiceStatus('DOWN');
+      }
+
+      // Filter for assigned users
+      const assignedFunds = allFunds.filter((fund: any) => 
+        myAssignedUserIds.includes(fund.customer_ref)
+      );
+      
+      const assignedHoldings = allHoldings.filter((holding: any) => 
+        myAssignedUserIds.includes(holding.investor_id)
+      );
+
+      setMutualFunds(assignedFunds);
+      setEquityHoldings(assignedHoldings);
+      
+    } catch (error) {
+      console.error('Failed to load wealth data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  // Calculate summaries
+  const mfTotalInvestment = mutualFunds.reduce((sum, fund) => sum + Number(fund.invested_amount || 0), 0);
+  const mfTotalCurrentValue = mutualFunds.reduce((sum, fund) => sum + Number(fund.current_value || 0), 0);
+  const mfProfit = mfTotalCurrentValue - mfTotalInvestment;
+
+  const eqTotalValue = equityHoldings.reduce((sum, holding) => {
+    return sum + (Number(holding.quantity) * Number(holding.current_market_price));
+  }, 0);
+
+  const totalWealth = mfTotalCurrentValue + eqTotalValue;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Layers className="h-6 w-6 text-indigo-600" />
-          Wealth Portfolio Overview
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400">
-          Consolidated client holdings, mutual funds portfolio breakdown, and asset valuation trackers.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Layers className="h-6 w-6 text-indigo-600" />
+            Wealth Portfolio Overview
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            Consolidated client holdings, mutual funds portfolio breakdown, and asset valuation trackers.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={loadData}
+          disabled={loading}
+          className="border-slate-200 dark:border-slate-800 self-start sm:self-center"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Refresh
+        </Button>
       </div>
 
       {/* Asset Allocation Summary Cards */}
@@ -99,10 +118,14 @@ export default async function AdminWealth() {
             <Wallet className="h-4 w-4 text-slate-400" />
           </div>
           <div className="mt-4 flex items-baseline text-3xl font-semibold text-slate-900 dark:text-slate-100">
-            ₹{summary?.totalWealth ? summary.totalWealth.toLocaleString('en-IN') : '0'}
+            {loading ? (
+              <span className="text-slate-300">...</span>
+            ) : (
+              `₹${totalWealth.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+            )}
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Aggregated client funds
+            Aggregated client funds (Assigned clients only)
           </p>
         </div>
 
@@ -113,10 +136,14 @@ export default async function AdminWealth() {
             <LineChart className="h-4 w-4 text-emerald-500" />
           </div>
           <div className="mt-4 flex items-baseline text-3xl font-semibold text-slate-900 dark:text-slate-100">
-            ₹{mutualFundsSummary.totalCurrentValue.toLocaleString('en-IN')}
+            {loading ? (
+              <span className="text-slate-300">...</span>
+            ) : (
+              `₹${mfTotalCurrentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+            )}
           </div>
           <p className="mt-1 text-xs text-emerald-600 flex items-center gap-1 font-semibold">
-            Profit: ₹{mutualFundsSummary.profit.toLocaleString('en-IN')}
+            Profit: ₹{mfProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </p>
         </div>
 
@@ -127,15 +154,19 @@ export default async function AdminWealth() {
             <Shield className="h-4 w-4 text-blue-500" />
           </div>
           <div className="mt-4 flex items-baseline text-3xl font-semibold text-slate-900 dark:text-slate-100">
-            ₹{equitySummary.totalValue.toLocaleString('en-IN')}
+            {loading ? (
+              <span className="text-slate-300">...</span>
+            ) : (
+              `₹${eqTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+            )}
           </div>
           <p className="mt-1 text-xs flex items-center gap-1">
             Service status:{' '}
             <span className={`inline-flex items-center font-bold gap-0.5 ${
-              equitySummary.service === 'UP' ? 'text-emerald-600' : 'text-rose-600'
+              equityServiceStatus === 'UP' ? 'text-emerald-600' : 'text-rose-600'
             }`}>
-              {equitySummary.service === 'UP' ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-              {equitySummary.service}
+              {equityServiceStatus === 'UP' ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+              {equityServiceStatus}
             </span>
           </p>
         </div>
@@ -146,25 +177,35 @@ export default async function AdminWealth() {
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
           <h2 className="font-bold text-slate-800 dark:text-slate-100">Mutual Fund Schemes</h2>
           <span className="text-xs font-semibold px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-350 rounded-full">
-            Client: CUST-1001
+            Assigned Clients
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
+                <th className="px-6 py-4 font-semibold">Client Ref</th>
                 <th className="px-6 py-4 font-semibold">Scheme Code</th>
                 <th className="px-6 py-4 font-semibold">AMC</th>
                 <th className="px-6 py-4 font-semibold">Units</th>
                 <th className="px-6 py-4 font-semibold">NAV Value</th>
                 <th className="px-6 py-4 font-semibold">Invested Amt</th>
                 <th className="px-6 py-4 font-semibold">Current Value</th>
-                <th className="px-6 py-4 font-semibold">Risk Category</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {fundsList.map((fund: any) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-500 mb-2" />
+                    Loading mutual fund holdings...
+                  </td>
+                </tr>
+              ) : mutualFunds.map((fund: any) => (
                 <tr key={fund.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                  <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-350">
+                    {fund.customer_ref}
+                  </td>
                   <td className="px-6 py-4">
                     <span className="font-semibold text-slate-900 dark:text-white block">
                       {fund.mf_schemes?.scheme_name || fund.scheme_code}
@@ -176,24 +217,13 @@ export default async function AdminWealth() {
                   </td>
                   <td className="px-6 py-4 font-mono">{fund.units}</td>
                   <td className="px-6 py-4 font-mono">₹{fund.mf_schemes?.nav_value || '0.00'}</td>
-                  <td className="px-6 py-4 font-mono">₹{fund.invested_amount.toLocaleString('en-IN')}</td>
+                  <td className="px-6 py-4 font-mono">₹{Number(fund.invested_amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 font-semibold text-indigo-600 dark:text-indigo-400 font-mono">
-                    ₹{fund.current_value.toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      fund.mf_schemes?.risk_category === 'Very High' || fund.mf_schemes?.risk_category === 'High'
-                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400'
-                        : fund.mf_schemes?.risk_category === 'Moderately High'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'
-                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400'
-                    }`}>
-                      {fund.mf_schemes?.risk_category || 'Moderate'}
-                    </span>
+                    ₹{Number(fund.current_value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}
-              {fundsList.length === 0 && (
+              {!loading && mutualFunds.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     No mutual fund holdings found.
@@ -204,6 +234,67 @@ export default async function AdminWealth() {
           </table>
         </div>
       </div>
+      
+      {/* Equity Holdings Section */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center">
+          <h2 className="font-bold text-slate-800 dark:text-slate-100">Equity Holdings</h2>
+          <span className="text-xs font-semibold px-2 py-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-350 rounded-full">
+            Assigned Clients
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th className="px-6 py-4 font-semibold">Client Ref</th>
+                <th className="px-6 py-4 font-semibold">Stock Symbol</th>
+                <th className="px-6 py-4 font-semibold">Exchange</th>
+                <th className="px-6 py-4 font-semibold">Quantity</th>
+                <th className="px-6 py-4 font-semibold">Avg Buy Price</th>
+                <th className="px-6 py-4 font-semibold">Current Price</th>
+                <th className="px-6 py-4 font-semibold">Current Value</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500 mb-2" />
+                    Loading equity holdings...
+                  </td>
+                </tr>
+              ) : equityHoldings.map((holding: any) => (
+                <tr key={holding.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                  <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-350">
+                    {holding.investor_id}
+                  </td>
+                  <td className="px-6 py-4 font-bold text-slate-900 dark:text-white uppercase">
+                    {holding.stock_symbol}
+                  </td>
+                  <td className="px-6 py-4 text-slate-700 dark:text-slate-350">
+                    {holding.exchange || 'NSE'}
+                  </td>
+                  <td className="px-6 py-4 font-mono">{holding.quantity}</td>
+                  <td className="px-6 py-4 font-mono">₹{Number(holding.avg_buy_price).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 font-mono">₹{Number(holding.current_market_price).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 font-semibold text-blue-600 dark:text-blue-400 font-mono">
+                    ₹{(Number(holding.quantity) * Number(holding.current_market_price)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              ))}
+              {!loading && equityHoldings.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                    No equity holdings found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
     </div>
   );
 }

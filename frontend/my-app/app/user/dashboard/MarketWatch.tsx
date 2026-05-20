@@ -57,8 +57,8 @@ export function MarketWatch({ marketPrices, watchlist, addToWatchlistAction, rem
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {marketPrices.map((p) => (
-                <tr key={p.symbol} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                  <td className="px-4 py-3 font-semibold">{p.symbol}</td>
+                <tr key={p.stock_symbol || p.symbol} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                  <td className="px-4 py-3 font-semibold">{p.stock_symbol || p.symbol}</td>
                   <td className="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">₹{p.current_price}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">{new Date(p.last_updated).toLocaleTimeString()}</td>
                 </tr>

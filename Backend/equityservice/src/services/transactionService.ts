@@ -46,6 +46,22 @@ export const listTransactions = async (investorId: string): Promise<EquityTransa
   return (transactions || []) as EquityTransactionRow[];
 };
 
+export const listAllTransactions = async (): Promise<EquityTransactionRow[]> => {
+  ensureSupabase();
+
+  const { data: transactions, error } = await supabase
+    .from('equity_transactions')
+    .select('*')
+    .order('executed_at', { ascending: false })
+    .order('id', { ascending: false });
+
+  if (error) {
+    throw new AppError(error.message, 500);
+  }
+
+  return (transactions || []) as EquityTransactionRow[];
+};
+
 export const buyStock = async (investorId: string, payload: TradePayload) => {
   ensureSupabase();
 

@@ -24,6 +24,21 @@ export const getHoldingsByInvestor = async (investorId: string): Promise<EquityH
   return (holdings || []) as EquityHoldingRow[];
 };
 
+export const getAllHoldings = async (): Promise<EquityHoldingRow[]> => {
+  ensureSupabase();
+
+  const { data: holdings, error } = await supabase
+    .from('equity_holdings')
+    .select('*')
+    .order('id', { ascending: true });
+
+  if (error) {
+    throw new AppError(error.message, 500);
+  }
+
+  return (holdings || []) as EquityHoldingRow[];
+};
+
 export const getHoldingsByInvestorId = async (investorId: string): Promise<EquityHoldingRow[]> => {
   ensureSupabase();
 

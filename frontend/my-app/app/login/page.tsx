@@ -101,11 +101,7 @@ export default function LoginPage() {
               </label>
             </div>
 
-            <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                Forgot password?
-              </a>
-            </div>
+           
           </div>
 
           <button
@@ -121,11 +117,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-800 text-center">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            <strong>Hint:</strong> Use <code className="text-blue-600 dark:text-blue-400">superadmin@app.com</code>, <code className="text-blue-600 dark:text-blue-400">admin@app.com</code>, or <code className="text-blue-600 dark:text-blue-400">user@app.com</code> to log in as different roles. Password can be anything.
-          </p>
-        </div>
+        
       </div>
     </div>
   );

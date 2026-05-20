@@ -11,6 +11,15 @@ export const getHoldings = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+export const getAllAdminHoldings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await holdingService.getAllHoldings();
+    sendSuccess(res, 'All holdings fetched successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getHoldingById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const investorId = String(req.params.id);

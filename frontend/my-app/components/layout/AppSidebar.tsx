@@ -65,7 +65,7 @@ const NAV_ITEMS: Record<string, NavGroup[]> = {
       label: 'ACCOUNT',
       items: [
         { name: 'Profile', href: '/user/profile', icon: User },
-        { name: 'Settings', href: '/user/settings', icon: Settings },
+        
       ]
     }
   ],
@@ -117,15 +117,10 @@ const NAV_ITEMS: Record<string, NavGroup[]> = {
     {
       label: 'OPERATIONS',
       items: [
-        { name: 'Assign Transactions', href: '/superadmin/assign-transactions', icon: ClipboardList },
+        { name: 'Assign Clients', href: '/superadmin/assign', icon: UserCheck },
       ]
     },
-    {
-      label: 'SYSTEM',
-      items: [
-        { name: 'Logs', href: '/superadmin/logs', icon: FileText },
-      ]
-    },
+    
     {
       label: 'ACCOUNT',
       items: [

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Phone, Server, ShieldCheck, Save, Loader2, Camera, Star } from 'lucide-react';
+import { updateProfile } from '@/lib/auth-actions';
+import { Mail, Server, ShieldCheck, Save, Loader2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,13 +23,35 @@ import { toast } from 'sonner';
 export default function SuperAdminProfile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName || !email) {
+      toast.error('Name and Email are required');
+      return;
+    }
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await updateProfile({
+      full_name: fullName,
+      email,
+      pan_number: 'SYSTEMPAN',
+      demat_account: 'SYSTEMDMAT',
+    });
     setLoading(false);
-    toast.success('Superadmin details updated');
+    if (result.success) {
+      toast.success('Superadmin details updated');
+    } else {
+      toast.error(result.message);
+    }
   };
 
   return (
@@ -50,17 +73,14 @@ export default function SuperAdminProfile() {
                 <div className="relative group">
                   <Avatar className="h-32 w-32 border-4 border-white dark:border-slate-900 shadow-lg">
                     <AvatarFallback className="bg-gradient-to-br from-rose-500 to-orange-600 text-white text-4xl">
-                      {user?.name.substring(0, 2).toUpperCase()}
+                      {fullName ? fullName.substring(0, 2).toUpperCase() : 'SU'}
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full shadow-lg hover:bg-slate-800 transition-transform hover:scale-105 active:scale-95">
-                    <Camera className="h-4 w-4" />
-                  </button>
                 </div>
                 
                 <div className="space-y-1">
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {user?.name}
+                    {fullName || 'Loading...'}
                   </h2>
                   <p className="text-sm font-medium text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5">
                     <Star className="h-4 w-4" />
@@ -69,11 +89,9 @@ export default function SuperAdminProfile() {
                 </div>
                 
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-300">
-                    God Mode
-                  </Badge>
+                  
                   <Badge variant="outline" className="text-slate-500 border-slate-200 dark:border-slate-700">
-                    ID: SYS-001
+                    ID: {user?.id}
                   </Badge>
                 </div>
               </div>
@@ -83,19 +101,7 @@ export default function SuperAdminProfile() {
                   <div className="p-2 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
                     <Mail className="h-4 w-4" />
                   </div>
-                  {user?.email}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    <Phone className="h-4 w-4" />
-                  </div>
-                  +1 (800) ADMIN-99
-                </div>
-                <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                    <Server className="h-4 w-4" />
-                  </div>
-                  US-EAST-1 Data Center
+                  {email || 'Loading...'}
                 </div>
               </div>
             </CardContent>
@@ -124,17 +130,24 @@ export default function SuperAdminProfile() {
                 <form onSubmit={handleSave}>
                   <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
+                      <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="name">Display Name</Label>
-                        <Input id="name" defaultValue={user?.name} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Root Email</Label>
-                        <Input id="email" type="email" defaultValue={user?.email} />
+                        <Input 
+                          id="name" 
+                          value={fullName} 
+                          onChange={(e) => setFullName(e.target.value)} 
+                          placeholder="e.g. System Administrator" 
+                        />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="ssh">Authorized SSH Key (Fingerprint)</Label>
-                        <Input id="ssh" defaultValue="SHA256:xA1B2C3D4E5F6G7H8I9J0K" readOnly className="font-mono text-sm" />
+                        <Label htmlFor="email">Root Email</Label>
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          value={email} 
+                          onChange={(e) => setEmail(e.target.value)} 
+                          placeholder="e.g. superadmin@app.com" 
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -167,10 +180,10 @@ export default function SuperAdminProfile() {
                         <ShieldCheck className="h-5 w-5 text-emerald-500" />
                         <div>
                           <p className="text-sm font-medium">Successful Login</p>
-                          <p className="text-xs text-slate-500">192.168.1.1 (Mac OS)</p>
+                          <p className="text-xs text-slate-500">127.0.0.1 (Localhost)</p>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-500">Today, 09:41 AM</p>
+                      <p className="text-xs text-slate-500">Just Now</p>
                     </div>
                   </div>
                 </CardContent>

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 type TokenPayload = {
   investor_id: string;
   email: string;
+  role?: string;
 };
 
 const getJwtSecret = (): string => {

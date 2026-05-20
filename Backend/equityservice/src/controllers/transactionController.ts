@@ -11,6 +11,15 @@ export const getTransactions = async (req: Request, res: Response, next: NextFun
   }
 };
 
+export const getAllAdminTransactions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await transactionService.listAllTransactions();
+    sendSuccess(res, 'All transactions fetched successfully', data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const buyStock = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await transactionService.buyStock(req.user.investor_id, req.body);

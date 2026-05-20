@@ -1,126 +1,79 @@
-import React from 'react';
-import { fetchApi } from '@/lib/api-client';
-import { Repeat, Calendar, CheckCircle2, AlertTriangle, Play, Pause, XCircle } from 'lucide-react';
+'use client';
 
-async function getMutualFundSips(customerRef: string = 'CUST-1001') {
-  try {
-    const res = await fetchApi(`/api/mf/sips/${customerRef}`, {
-      method: 'GET',
-      service: 'mutualFund',
-      requireAuth: false,
-    });
-    return res.sips || [];
-  } catch (error) {
-    console.error(`Failed to fetch SIPs for ${customerRef}:`, error);
-    // Return dummy data fallback
-    return [
-      {
-        id: 1,
-        customer_ref: customerRef,
-        scheme_code: 'SBI-BLUECHIP',
-        sip_amount: 5000,
-        sip_status: 'ACTIVE',
-        start_date: '2023-06-01',
-        next_due_date: '2024-12-05',
-        mf_schemes: {
-          amc_name: 'SBI Mutual Fund',
-          nav_date: '2024-12-01',
-          nav_value: 68.4521,
-          scheme_code: 'SBI-BLUECHIP',
-          scheme_name: 'SBI Bluechip Fund',
-          fund_category: 'Large Cap',
-          risk_category: 'Moderate'
-        }
-      },
-      {
-        id: 2,
-        customer_ref: customerRef,
-        scheme_code: 'MIRAE-LARGECAP',
-        sip_amount: 3000,
-        sip_status: 'ACTIVE',
-        start_date: '2024-01-01',
-        next_due_date: '2024-12-05',
-        mf_schemes: {
-          amc_name: 'Mirae Asset',
-          nav_date: '2024-12-01',
-          nav_value: 112.89,
-          scheme_code: 'MIRAE-LARGECAP',
-          scheme_name: 'Mirae Asset Large Cap Fund',
-          fund_category: 'Large Cap',
-          risk_category: 'Moderate'
-        }
-      }
-    ];
-  }
-}
+import React, { useEffect, useState } from 'react';
+import { Repeat, Calendar, CheckCircle2, AlertTriangle, Play, Pause, XCircle, Loader2, RefreshCw } from 'lucide-react';
+import { getAssignments, getAllAdminSips } from '@/lib/admin-actions';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
-async function getMutualFundFailedSips() {
-  try {
-    const res = await fetchApi('/api/mf/failed-sips', {
-      method: 'GET',
-      service: 'mutualFund',
-      requireAuth: false,
-    });
-    return res.failedSips || [];
-  } catch (error) {
-    console.error('Failed to fetch failed SIPs:', error);
-    // Return dummy data fallback
-    return [
-      {
-        id: 3,
-        customer_ref: 'CUST-1002',
-        scheme_code: 'AXIS-SMALLCAP',
-        sip_amount: 2500,
-        sip_status: 'PAUSED',
-        start_date: '2023-09-01',
-        next_due_date: null,
-        mf_schemes: {
-          amc_name: 'Axis Mutual Fund',
-          nav_date: '2024-12-01',
-          nav_value: 95.231,
-          scheme_code: 'AXIS-SMALLCAP',
-          scheme_name: 'Axis Small Cap Fund',
-          fund_category: 'Small Cap',
-          risk_category: 'Very High'
-        }
-      },
-      {
-        id: 5,
-        customer_ref: 'CUST-1004',
-        scheme_code: 'NIPPON-GROWTH',
-        sip_amount: 2000,
-        sip_status: 'CANCELLED',
-        start_date: '2023-11-20',
-        next_due_date: null,
-        mf_schemes: {
-          amc_name: 'Nippon India',
-          nav_date: '2024-12-01',
-          nav_value: 312.45,
-          scheme_code: 'NIPPON-GROWTH',
-          scheme_name: 'Nippon India Growth Fund',
-          fund_category: 'Mid Cap',
-          risk_category: 'High'
-        }
-      }
-    ];
-  }
-}
+export default function AdminSIP() {
+  const [activeSips, setActiveSips] = useState<any[]>([]);
+  const [failedSips, setFailedSips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-export default async function AdminSIP() {
-  const activeSips = await getMutualFundSips('CUST-1001');
-  const failedSips = await getMutualFundFailedSips();
+  const loadData = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const assignments = await getAssignments();
+      const myAssignedUserIds = assignments
+        .filter(a => a.advisor_id === user.id)
+        .map(a => a.investor_id);
+
+      const allData = await getAllAdminSips();
+      
+      const allSips = allData || [];
+
+      // Filter active SIPs for assigned users
+      const assignedActiveSips = allSips.filter((sip: any) => 
+        myAssignedUserIds.includes(sip.customer_ref) && sip.sip_status === 'ACTIVE'
+      );
+
+      // We still might want to show global failed SIPs, but it's better to filter them for this admin's users
+      const assignedFailedSips = allSips.filter((sip: any) => 
+        myAssignedUserIds.includes(sip.customer_ref) && sip.sip_status !== 'ACTIVE'
+      );
+
+      setActiveSips(assignedActiveSips);
+      setFailedSips(assignedFailedSips);
+    } catch (error) {
+      console.error('Failed to fetch SIP data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Repeat className="h-6 w-6 text-emerald-600" />
-          Systematic Investment Plans (SIP)
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400">
-          Track recurring mutual fund schedules, active portfolios, and paused or cancelled configurations.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Repeat className="h-6 w-6 text-emerald-600" />
+            Systematic Investment Plans (SIP)
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            Track recurring mutual fund schedules, active portfolios, and paused or cancelled configurations.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={loadData}
+          disabled={loading}
+          className="border-slate-200 dark:border-slate-800 self-start sm:self-center"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Refresh
+        </Button>
       </div>
 
       {/* Grid of Tables */}
@@ -133,7 +86,7 @@ export default async function AdminSIP() {
               Active SIP Schedules
             </h2>
             <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-450 rounded-full">
-              Client: CUST-1001
+              Assigned Clients
             </span>
           </div>
           
@@ -141,16 +94,26 @@ export default async function AdminSIP() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Scheme</th>
+                  <th className="px-4 py-3 font-semibold">Client / Scheme</th>
                   <th className="px-4 py-3 font-semibold">Amount</th>
                   <th className="px-4 py-3 font-semibold">Next Due</th>
                   <th className="px-4 py-3 font-semibold">Start Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {activeSips.map((sip: any) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-emerald-500 mb-2" />
+                      Loading active SIPs...
+                    </td>
+                  </tr>
+                ) : activeSips.map((sip: any) => (
                   <tr key={sip.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                     <td className="px-4 py-3">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block font-mono">
+                        {sip.customer_ref}
+                      </span>
                       <span className="font-semibold text-slate-900 dark:text-white block">
                         {sip.mf_schemes?.scheme_name || sip.scheme_code}
                       </span>
@@ -167,7 +130,7 @@ export default async function AdminSIP() {
                     </td>
                   </tr>
                 ))}
-                {activeSips.length === 0 && (
+                {!loading && activeSips.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
                       No active SIPs found.
@@ -187,7 +150,7 @@ export default async function AdminSIP() {
               Failed & Paused SIP Alerts
             </h2>
             <span className="text-xs font-semibold px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-455 rounded-full">
-              Global Platform Alerts
+              Assigned Clients
             </span>
           </div>
 
@@ -202,7 +165,14 @@ export default async function AdminSIP() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {failedSips.map((sip: any) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-rose-500 mb-2" />
+                      Loading SIP alerts...
+                    </td>
+                  </tr>
+                ) : failedSips.map((sip: any) => (
                   <tr key={sip.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                     <td className="px-4 py-3">
                       <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block font-mono">
@@ -230,7 +200,7 @@ export default async function AdminSIP() {
                     </td>
                   </tr>
                 ))}
-                {failedSips.length === 0 && (
+                {!loading && failedSips.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
                       No failed or paused SIP alerts detected.

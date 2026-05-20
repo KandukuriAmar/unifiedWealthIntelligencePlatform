@@ -14,9 +14,11 @@ export interface UserSession {
   role: Role;
   access_token?: string;
   refresh_token?: string;
+  pan_number?: string;
+  demat_account?: string;
 }
 
-// Mock users database with dummy session tokens for the backend
+
 const MOCK_USERS: Record<Role, UserSession> = {
   user: { 
     id: 'usr_1', 
@@ -38,30 +40,51 @@ export async function login(credentials: { email?: string; password?: string; ro
 
   if (role === 'admin' || role === 'superadmin') {
     try {
-      // Call real backend for Admin/Superadmin on Wealth Service (port 5000)
-      const response = await fetchApi('/api/auth/login', {
+     
+      const res = await fetchApi('/api/auth/login', {
         method: 'POST',
         requireAuth: false,
         service: 'wealth',
         body: JSON.stringify({ email, password }),
       });
       
-      const data = response.data;
+      const payload = res.data;
       userSession = {
-        id: role === 'superadmin' ? 'sup_1' : 'adm_1',
-        name: role === 'superadmin' ? 'Super Admin' : 'Admin User',
-        email: email || (role === 'superadmin' ? 'superadmin@example.com' : 'admin@example.com'),
+        id: payload.user.id,
+        name: payload.user.name,
+        email: payload.user.email,
         role: role,
-        access_token: data.token, // Store the returned token
+        access_token: payload.token,
       };
     } catch (e: any) {
       console.error('Real admin login failed, falling back to mock session:', e.message);
-      // Fallback to mock session so that the developer can still run it if the backend is down
       userSession = MOCK_USERS[role];
     }
   } else {
-    // Keep mock for investor/user role as requested
-    userSession = MOCK_USERS.user;
+    try {
+     
+      const res = await fetchApi('/auth/login', {
+        method: 'POST',
+        requireAuth: false,
+        service: 'equity',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const payload = res.data;
+      userSession = {
+        id: payload.investor.investor_id,
+        name: payload.investor.full_name,
+        email: payload.investor.email,
+        role: 'user',
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+        pan_number: payload.investor.pan_number,
+        demat_account: payload.investor.demat_account,
+      };
+    } catch (e: any) {
+      console.error('Real user login failed, falling back to mock session:', e.message);
+      userSession = MOCK_USERS.user;
+    }
   }
 
   const cookieStore = await cookies();
@@ -70,11 +93,43 @@ export async function login(credentials: { email?: string; password?: string; ro
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 1 week
+    maxAge: 60 * 60 * 24 * 7, 
   });
 
   redirect(`/${role}/dashboard`);
 }
+
+export async function updateProfile(data: { full_name: string; email: string; pan_number: string; demat_account: string }) {
+  try {
+    const res = await fetchApi('/auth/profile', {
+      method: 'PUT',
+      service: 'equity',
+      body: JSON.stringify(data),
+    });
+
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
+    if (sessionCookie) {
+      const session = JSON.parse(sessionCookie.value) as UserSession;
+      session.name = data.full_name;
+      session.email = data.email;
+      session.pan_number = data.pan_number;
+      session.demat_account = data.demat_account;
+      cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(session), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+    return { success: true, message: 'Profile updated successfully' };
+  } catch (error: any) {
+    console.error('Failed to update profile:', error.message);
+    return { success: false, message: error.message || 'Failed to update profile' };
+  }
+}
+
 
 export async function logout() {
   const cookieStore = await cookies();

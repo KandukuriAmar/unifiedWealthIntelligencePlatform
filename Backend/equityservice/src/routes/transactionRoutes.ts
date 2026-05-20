@@ -9,6 +9,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/', transactionController.getTransactions);
+router.get('/admin', transactionController.getAllAdminTransactions);
 router.post('/buy', transactionValidation, validateRequestMiddleware, transactionController.buyStock);
 router.post('/sell', transactionValidation, validateRequestMiddleware, transactionController.sellStock);
 

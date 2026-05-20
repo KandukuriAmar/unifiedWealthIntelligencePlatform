@@ -25,11 +25,11 @@ export const login = async (
       data
     });
 
-  } catch (error) {
+  } catch (error: any) {
 
     res.status(401).json({
       success: false,
-      message: "Login Failed"
+      message: error.message || "Login Failed"
     });
   }
 };
