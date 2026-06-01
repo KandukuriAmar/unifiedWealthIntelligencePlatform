@@ -40,7 +40,7 @@ router.get(
 
   allowRoles(
     "ADMIN",
-    "ADVISOR"
+    "INVESTOR"
   ),
 
   dashboard
