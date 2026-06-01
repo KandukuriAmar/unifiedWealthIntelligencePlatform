@@ -6,7 +6,7 @@ from "../models/types";
 import AppError
 from "../utils/appError";
 
-
+  
 const ensureSupabase = (): void => {
 
   if (!supabase) {

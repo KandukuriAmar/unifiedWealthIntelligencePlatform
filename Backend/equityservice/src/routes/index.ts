@@ -19,7 +19,7 @@ const router = Router();
 
 router.use(
   "/holdings",
-  holdingRoutes
+  holdingRoutes 
 );
 
 
